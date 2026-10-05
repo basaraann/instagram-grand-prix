@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Grand Prix (Multi-Theme)</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; transition: background-color 0.5s ease; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+        // ============================================================================
+        // --- THEME CONFIGURATION ---
+        // ============================================================================
+        const THEMES = {
+            sand: { 
+                name: '🏜️ Çöl', 
+                bg: '#451a03', // Dark brown body bg
+                surface: '#e7e5e4', // Warm grey/sand surface
+                text: '#fffbeb', 
+                accent: 'bg-orange-600',
+                panel: 'bg-stone-900 border-stone-700'
+            },
+            grass: { 
+                name: '🌲 Çim', 
+                bg: '#14532d', 
+                surface: '#15803d', // Green surface
+                text: '#f0fdf4', 
+                accent: 'bg-green-600',
+                panel: 'bg-green-900 border-green-700'
+            },
+            night: { 
+                name: '🌃 Gece', 
+                bg: '#020617', 
+                surface: '#0f172a', // Dark slate surface
+                text: '#f8fafc', 
+                accent: 'bg-blue-600',
+                panel: 'bg-slate-900 border-slate-800'
+            },
+            city: { 
+                name: '🏙️ Şehir', 
+                bg: '#111827', 
+                surface: '#374151', // Dark grey concrete
+                text: '#f9fafb', 
+                accent: 'bg-gray-600',
+                panel: 'bg-gray-900 border-gray-700'
+            }
+        };
+
+        // ============================================================================
+        // --- ICON COMPONENTS ---
+        // ============================================================================
+        const Icon = ({ children, className, size = 24, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
+        );
+        
+        const Play = (props) => <Icon {...props}><polygon points="5 3 19 12 5 21 5 3" /></Icon>;
+        const Trophy = (props) => <Icon {...props}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6a5 5 0 0 1 5 5v3H6zm12 0h1.5a2.5 2.5 0 0 0 0-5H18a5 5 0 0 0-5 5v3h5zM12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 0v3m-4 3h8" /></Icon>;
+        const Settings = (props) => <Icon {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></Icon>;
+        const Circle = (props) => <Icon {...props}><circle cx="12" cy="12" r="10" /></Icon>;
+        const Activity = (props) => <Icon {...props}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></Icon>;
+        const Camera = (props) => <Icon {...props}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></Icon>;
+        const Upload = (props) => <Icon {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></Icon>;
+        const FileCode = (props) => <Icon {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="m10 13-2 2 2 2" /><path d="m14 17 2-2-2-2" /></Icon>;
+        const X = (props) => <Icon {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></Icon>;
+        const Download = (props) => <Icon {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></Icon>;
+        const FolderInput = (props) => <Icon {...props}><path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9L10.8 6H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9" /><path d="M2 13h10" /><path d="m9 16 3-3-3-3" /></Icon>;
+        const ImageIcon = (props) => <Icon {...props}><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></Icon>;
+        const Users = (props) => <Icon {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></Icon>;
+        const Volume2 = (props) => <Icon {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></Icon>;
+        const VolumeX = (props) => <Icon {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" x2="17" y1="9" y2="15" /><line x1="17" x2="23" y1="9" y2="15" /></Icon>;
+        const Music = (props) => <Icon {...props}><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></Icon>;
+        const Type = (props) => <Icon {...props}><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" x2="15" y1="20" y2="20" /><line x1="12" x2="12" y1="4" y2="20" /></Icon>;
+        const FileJson = (props) => <Icon {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M10 12a1 1 0 0 0-1 1v1a1 1 0 0 1-1 1 1 1 0 0 1 1 1v1a1 1 0 0 0 1 1" /></Icon>;
+        const Sparkles = (props) => <Icon {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></Icon>;
+        const Palette = (props) => <Icon {...props}><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></Icon>;
+
+        // ============================================================================
+        // --- CONSTANTS & CONFIGURATION ---
+        // ============================================================================
+        const DEFAULT_BGM_URL = "https://codeskulptor-demos.commondatastorage.googleapis.com/pang/paza-moduless.mp3";
+        const WIN_SFX_URL = "https://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/bonus.wav";
+        
+        // REVERTED: Back to 120 updates per second for ultra smoothness
+        const FIXED_TIME_STEP = 1000 / 120; 
+        
+        const generateRandomColor = () => {
+          const colors = [
+            '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981', '#06b6d4', '#3b82f6', 
+            '#6366f1', '#8b5cf6', '#d946ef', '#0ea5e9', '#e11d48', '#7c3aed'
+          ];
+          return colors[Math.floor(Math.random() * colors.length)];
+        };
+
+        const LAP_OPTIONS = Object.freeze([1, 2, 3, 5, 10]);
+        
+        const TRACKS = Object.freeze({
+            nurburgring: { 
+                name: '🇩🇪 Nürburgring (Yeşil Cehennem)', 
+                width: 130, 
+                zoom: 0.4, // Geniş bir pist olduğu için zoom oranı düşük
+                points: Object.freeze([
+                    {x: 0, y: 0}, {x: 50, y: -150}, {x: 100, y: -300}, {x: 0, y: -450}, {x: -100, y: -400}, 
+                    {x: -150, y: -550}, {x: -50, y: -700}, {x: 100, y: -850}, {x: 300, y: -1000}, {x: 500, y: -1100}, 
+                    {x: 700, y: -1000}, {x: 800, y: -850}, {x: 700, y: -700}, {x: 900, y: -600}, {x: 1100, y: -750}, 
+                    {x: 1300, y: -900}, {x: 1500, y: -700}, {x: 1400, y: -500}, {x: 1200, y: -400}, {x: 1100, y: -250}, // Karussell benzeri dönüş
+                    {x: 1300, y: -100}, {x: 1500, y: 100}, {x: 1600, y: 300}, {x: 1400, y: 500}, {x: 1200, y: 600}, 
+                    {x: 1400, y: 800}, {x: 1600, y: 1000}, {x: 1800, y: 1200}, {x: 1500, y: 1400}, {x: 1000, y: 1400}, 
+                    {x: 500, y: 1400}, {x: 0, y: 1400}, // Dottinger Höhe düzlüğü
+                    {x: -200, y: 1200}, {x: -100, y: 800}, {x: -200, y: 400}, {x: -100, y: 100}
+                ])
+            },
+            monaco: { name: '🏁 Monaco GP', width: 119, zoom: 0.8, points: Object.freeze([{x: -80, y: 346}, {x: 76, y: 401}, {x: 250, y: 546}, {x: 482, y: 640}, {x: 640, y: 815}, {x: 859, y: 738}, {x: 842, y: 489}, {x: 1272, y: 381}, {x: 1309, y: 518}, {x: 1193, y: 543}, {x: 1176, y: 812}, {x: 1299, y: 835}, {x: 1345, y: 657}, {x: 1552, y: 734}, {x: 1345, y: 1052}, {x: 960, y: 1205}, {x: 587, y: 1000}, {x: 487, y: 1117}, {x: 380, y: 1016}, {x: 445, y: 867}, {x: 98, y: 615}, {x: 8, y: 767}, {x: 24, y: 968}, {x: 179, y: 977}, {x: 121, y: 1395}, {x: -2, y: 1401}, {x: 1, y: 1751}, {x: 120, y: 1934}, {x: 156, y: 2175}, {x: -129, y: 2078}, {x: -173, y: 1154}, {x: -164, y: 380}]) },
+            silverstone: { name: '🇬🇧 Silverstone GP', width: 140, zoom: 0.8, points: Object.freeze([{x: 15, y: 229},{x: 351, y: 480},{x: 444, y: 623},{x: 439, y: 863},{x: 551, y: 1020},{x: 671, y: 1156},{x: 600, y: 1212},{x: 509, y: 1266},{x: 584, y: 1351},{x: 805, y: 1333},{x: 1155, y: 949},{x: 1384, y: 571},{x: 1194, y: 434},{x: 1230, y: 313},{x: 1472, y: 412},{x: 1664, y: 748},{x: 1715, y: 1276},{x: 1429, y: 1458},{x: 1015, y: 1506},{x: 829, y: 1583},{x: 589, y: 1525},{x: 407, y: 1615},{x: 151, y: 1379},{x: -731, y: 893},{x: -760, y: 663},{x: -381, y: 359},{x: -363, y: 264},{x: -394, y: 185},{x: -210, y: 85}]) },
+            intercity: { name: '🇹🇷 Istanbul GP', width: 150, zoom: 0.8, points: Object.freeze([{x: -81, y: 1660},{x: 283, y: 1656},{x: 332, y: 1478},{x: 516, y: 1286},{x: 767, y: 1246},{x: 938, y: 1278},{x: 1071, y: 1292},{x: 1162, y: 1201},{x: 1177, y: 1080},{x: 1369, y: 1086},{x: 1380, y: 940},{x: 1169, y: 784},{x: 894, y: 565},{x: 925, y: 435},{x: 1137, y: 477},{x: 1344, y: 581},{x: 1533, y: 562},{x: 1617, y: 439},{x: 1516, y: 233},{x: 1240, y: 198},{x: 882, y: 221},{x: 614, y: 271},{x: 588, y: 544},{x: 371, y: 908},{x: 214, y: 1068},{x: -342, y: 1253},{x: -675, y: 1353},{x: -721, y: 1471},{x: -602, y: 1489},{x: -653, y: 1645}]) },
+            spa: { name: '🇧🇪 Spa-Francorchamps', width: 100, zoom: 0.55, points: Object.freeze([{x: 380, y: 1550}, {x: 380, y: 1650}, {x: 280, y: 1700}, {x: 250, y: 1600}, {x: 350, y: 1450}, {x: 400, y: 1420}, {x: 450, y: 1380}, {x: 420, y: 1340}, {x: 780, y: 1000}, {x: 850, y: 920}, {x: 920, y: 900}, {x: 950, y: 980}, {x: 900, y: 1100}, {x: 850, y: 1200}, {x: 750, y: 1150}, {x: 650, y: 1180}, {x: 550, y: 1220}, {x: 480, y: 1280}, {x: 520, y: 1350}, {x: 620, y: 1380}, {x: 700, y: 1360}, {x: 780, y: 1420}, {x: 820, y: 1480}, {x: 750, y: 1600}, {x: 600, y: 1680}, {x: 500, y: 1650}, {x: 450, y: 1680}, {x: 420, y: 1600}]) },
+            zigzag: { name: '⚡ ZigZag GP', width: 140, zoom: 0.8, points: Object.freeze([{x: 300, y: 1700}, {x: 800, y: 1700}, {x: 950, y: 1500}, {x: 200, y: 1350}, {x: 150, y: 1100}, {x: 900, y: 950}, {x: 850, y: 700}, {x: 200, y: 550}, {x: 300, y: 250}, {x: 540, y: 100}, {x: 800, y: 250}, {x: 900, y: 800}, {x: 540, y: 1200}, {x: 200, y: 1600}]) },
+            tornado: { name: '🌀 Tornado', width: 150, zoom: 0.85, points: Object.freeze([{x: 540, y: 1750}, {x: 900, y: 1600}, {x: 800, y: 1300}, {x: 200, y: 1300}, {x: 150, y: 1000}, {x: 850, y: 900}, {x: 800, y: 600}, {x: 300, y: 600}, {x: 400, y: 400}, {x: 540, y: 200}, {x: 700, y: 400}, {x: 540, y: 800}, {x: 540, y: 1400}]) },
+            oval: { name: '🏁 Hız Ovası', width: 170, zoom: 0.85, points: Object.freeze([{x: 540, y: 1700}, {x: 900, y: 1600}, {x: 1000, y: 1200}, {x: 1000, y: 600}, {x: 900, y: 200}, {x: 540, y: 150}, {x: 180, y: 200}, {x: 80, y: 600}, {x: 80, y: 1200}, {x: 180, y: 1600}]) },
+            eight: { name: '♾️ Sonsuzluk', width: 140, zoom: 0.8, points: Object.freeze([{x: 540, y: 960}, {x: 800, y: 700}, {x: 900, y: 400}, {x: 540, y: 200}, {x: 180, y: 400}, {x: 280, y: 700}, {x: 540, y: 960}, {x: 800, y: 1220}, {x: 900, y: 1520}, {x: 540, y: 1720}, {x: 180, y: 1520}, {x: 280, y: 1220}]) },
+            heart: { name: '❤️ Kalp Pisti', width: 150, zoom: 0.9, points: Object.freeze([{x: 540, y: 1600}, {x: 900, y: 1100}, {x: 1000, y: 600}, {x: 900, y: 300}, {x: 540, y: 500}, {x: 180, y: 300}, {x: 80, y: 600}, {x: 180, y: 1100}]) },
+            suzuka: { name: '🇯🇵 Suzuka', width: 150, zoom: 0.9, points: Object.freeze([{x: 200, y: 700}, {x: 600, y: 700}, {x: 900, y: 600}, {x: 1100, y: 400}, {x: 1000, y: 200}, {x: 700, y: 200}, {x: 500, y: 300}, {x: 400, y: 400}, {x: 500, y: 500}, {x: 800, y: 400}, {x: 1100, y: 300}, {x: 1300, y: 200}, {x: 1400, y: 500}, {x: 1200, y: 700}, {x: 800, y: 800}, {x: 400, y: 750}]) }
+        });
+
+        // ============================================================================
+        // --- ENGINE & HELPER FUNCTIONS ---
+        // ============================================================================
+
+        const createOptimizedAvatar = (imgSrc) => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = () => {
+                    const largeSize = 256;
+                    const largeCanvas = document.createElement('canvas');
+                    largeCanvas.width = largeSize;
+                    largeCanvas.height = largeSize;
+                    const lCtx = largeCanvas.getContext('2d');
+                    lCtx.beginPath();
+                    lCtx.arc(largeSize/2, largeSize/2, largeSize/2, 0, Math.PI * 2);
+                    lCtx.closePath();
+                    lCtx.clip();
+                    lCtx.drawImage(img, 0, 0, largeSize, largeSize);
+
+                    const smallSize = 64; 
+                    const smallCanvas = document.createElement('canvas');
+                    smallCanvas.width = smallSize;
+                    smallCanvas.height = smallSize;
+                    const sCtx = smallCanvas.getContext('2d');
+                    sCtx.beginPath();
+                    sCtx.arc(smallSize/2, smallSize/2, smallSize/2, 0, Math.PI * 2);
+                    sCtx.closePath();
+                    sCtx.clip();
+                    sCtx.drawImage(img, 0, 0, smallSize, smallSize);
+
+                    resolve({ small: smallCanvas, large: largeCanvas });
+                };
+                img.onerror = () => resolve(null);
+                img.src = imgSrc;
+            });
+        };
+
+        const generateSmoothTrack = (controlPoints, segments = 50) => {
+            const points = [];
+            const len = controlPoints.length;
+            const pts = [controlPoints[len - 1], ...controlPoints, controlPoints[0], controlPoints[1]];
+            for (let i = 0; i < len; i++) {
+                const p0 = pts[i], p1 = pts[i + 1], p2 = pts[i + 2], p3 = pts[i + 3];
+                for (let t = 0; t < segments; t++) {
+                    const t1 = t / segments, t2 = t1 * t1, t3 = t2 * t1;
+                    points.push({
+                        x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t1 + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+                        y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t1 + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3)
+                    });
+                }
+            }
+            return points;
+        };
+
+        const addCurveData = (trackPoints) => {
+            const len = trackPoints.length;
+            trackPoints.forEach((p, i) => {
+                const pPrev = trackPoints[(i - 6 + len) % len];
+                const pNext = trackPoints[(i + 6) % len];
+                const angle1 = Math.atan2(p.y - pPrev.y, p.x - pPrev.x);
+                const angle2 = Math.atan2(pNext.y - p.y, pNext.x - p.x);
+                let diff = Math.abs(angle1 - angle2);
+                if (diff > Math.PI) diff = 2 * Math.PI - diff;
+                p.isCurve = diff > 0.15;
+            });
+            return trackPoints;
+        };
+
+        const calculateTrackBounds = (trackPoints) => {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            for (const p of trackPoints) {
+                if (p.x < minX) minX = p.x;
+                if (p.x > maxX) maxX = p.x;
+                if (p.y < minY) minY = p.y;
+                if (p.y > maxY) maxY = p.y;
+            }
+            return { center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2 }, minX, maxX, minY, maxY };
+        };
+
+        // ============================================================================
+        // --- DRAWING FUNCTIONS ---
+        // ============================================================================
+        
+        const renderStaticTrack = (trackPoints, trackWidth, bounds, surfaceColor) => {
+            const padding = 500; 
+            const width = (bounds.maxX - bounds.minX) + padding * 2;
+            const height = (bounds.maxY - bounds.minY) + padding * 2;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            // --- THEME BACKGROUND (CANVAS) ---
+            ctx.fillStyle = surfaceColor; 
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.translate(-bounds.minX + padding, -bounds.minY + padding);
+
+            // --- DECORATIVE ELEMENTS GENERATION (REMOVED) ---
+            // Süslemeler kaldırıldı, sadece pist kalacak.
+
+            const trackLen = trackPoints.length;
+            
+            // Kerbs
+            ctx.save();
+            ctx.lineCap = 'butt';
+            ctx.lineWidth = trackWidth + 50;
+            const makePath = () => {
+                ctx.beginPath();
+                let isDrawing = false;
+                for (let i = 0; i < trackLen; i++) {
+                    if (trackPoints[i].isCurve) {
+                        if (!isDrawing) { ctx.moveTo(trackPoints[i].x, trackPoints[i].y); isDrawing = true; }
+                        const nextIndex = (i + 1) % trackLen;
+                        ctx.lineTo(trackPoints[nextIndex].x, trackPoints[nextIndex].y);
+                        if (!trackPoints[nextIndex].isCurve) isDrawing = false;
+                    } else { isDrawing = false; }
+                }
+            };
+            makePath();
+            ctx.strokeStyle = '#ef4444';
+            ctx.stroke();
+            makePath();
+            ctx.strokeStyle = '#ffffff';
+            ctx.setLineDash([40, 40]);
+            ctx.stroke();
+            ctx.restore();
+
+            // Asphalt (DARK TRACK)
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = trackWidth;
+            ctx.strokeStyle = '#334155'; // Dark Slate
+            ctx.beginPath();
+            ctx.moveTo(trackPoints[0].x, trackPoints[0].y);
+            for (let i = 1; i < trackPoints.length; i++) ctx.lineTo(trackPoints[i].x, trackPoints[i].y);
+            ctx.closePath();
+            ctx.stroke();
+            
+            ctx.lineWidth = trackWidth - 4; ctx.strokeStyle = '#f8fafc'; ctx.stroke();
+            ctx.lineWidth = trackWidth - 8; ctx.strokeStyle = '#334155'; ctx.stroke();
+            
+            ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.setLineDash([40, 40]); ctx.stroke(); ctx.setLineDash([]);
+
+            // Start Line & Arch
+            const startP = trackPoints[0];
+            const nextAngleP = trackPoints[1];
+            const sAngle = Math.atan2(nextAngleP.y - startP.y, nextAngleP.x - startP.x);
+            
+            ctx.save();
+            ctx.translate(startP.x, startP.y);
+            ctx.rotate(sAngle + Math.PI / 2);
+            // Checker pattern
+            const checkSize = 16;
+            const cols = Math.ceil(trackWidth / checkSize);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-trackWidth / 2, -checkSize * 1.5, trackWidth, checkSize * 3);
+            ctx.fillStyle = '#000000';
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if ((r + c) % 2 === 1) ctx.fillRect(-trackWidth / 2 + c * checkSize, -checkSize * 1.5 + r * checkSize, checkSize, checkSize);
+                }
+            }
+            // START Text on Road (Arch Removed)
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 40px Arial';
+            ctx.textAlign = 'center';
+            ctx.save();
+            ctx.rotate(-Math.PI/2);
+            ctx.fillText("START", 60, 0); // Yere yazıldı
+            ctx.restore();
+
+            ctx.restore();
+
+            return { canvas, offsetX: -bounds.minX + padding, offsetY: -bounds.minY + padding };
+        };
+
+        const drawRacer = (ctx, racer, opacity, showName, cameraMode, isEnding) => {
+            if (opacity <= 0.01) return;
+
+            ctx.save();
+            ctx.translate(racer.x, racer.y);
+            ctx.globalAlpha = opacity;
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.arc(racer.radius * 0.2, racer.radius * 0.2, racer.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Body
+            if (racer.cachedSmall) {
+                ctx.drawImage(racer.cachedSmall, -racer.radius, -racer.radius, racer.radius * 2, racer.radius * 2);
+            } else {
+                ctx.fillStyle = racer.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, racer.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Stroke
+            ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, racer.radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Glare
+            ctx.fillStyle = racer.cachedSmall ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)';
+            ctx.beginPath();
+            ctx.arc(-racer.radius * 0.3, -racer.radius * 0.3, racer.radius * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Name Tag (White with Black Outline for Dark Track)
+            if (showName && !racer.finished && racer.rank <= 10 && cameraMode === 'leader' && !isEnding) {
+                ctx.fillStyle = '#ffffff'; 
+                ctx.font = 'bold 14px "Inter", sans-serif';
+                ctx.textAlign = 'center';
+                // Black outline
+                ctx.shadowColor = 'black';
+                ctx.shadowBlur = 4;
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'black';
+                ctx.strokeText(racer.name, 0, -racer.radius - 10);
+                ctx.fillText(racer.name, 0, -racer.radius - 10);
+                ctx.shadowBlur = 0;
+            }
+
+            ctx.restore();
+        };
+
+        const drawResultsScreen = (ctx, results, revealIndex, config, cachedOverlay, effectVideo) => {
+            const theme = THEMES[config.theme];
+            
+            // 1. Temizle ve Arka Plan (THEME BG)
+            ctx.setTransform(1, 0, 0, 1, 0, 0); 
+            ctx.fillStyle = theme.bg; 
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            
+            // EFEKT VİDEOSU
+            if (effectVideo && !effectVideo.paused) {
+                 ctx.save();
+                 ctx.globalAlpha = 0.5; 
+                 ctx.drawImage(effectVideo, 0, 0, ctx.canvas.width, ctx.canvas.height);
+                 ctx.restore();
+            }
+
+            const { top3, displayList, totalRacers } = results; const centerX = ctx.canvas.width / 2;
+            
+            // 2. Başlık
+            ctx.save(); 
+            ctx.fillStyle = '#facc15'; ctx.font = 'bold 100px Arial'; ctx.textAlign = 'center'; ctx.fillText('🏆', centerX, 180);
+            ctx.fillStyle = theme.text; 
+            ctx.font = 'bold 50px "Inter", sans-serif'; ctx.fillText('KAZANANLAR', centerX, 250);
+            ctx.restore();
+
+            // 3. Podyum
+            if (top3[1]) drawPodiumProfile(ctx, top3[1], centerX - 260, 500, 90, '#94a3b8', '2');
+            if (top3[2]) drawPodiumProfile(ctx, top3[2], centerX + 260, 500, 90, '#b45309', '3'); 
+            if (top3[0]) drawPodiumProfile(ctx, top3[0], centerX, 440, 130, '#facc15', '1');
+            ctx.restore();
+            
+            // 4. Liste Arka Planı
+            const listHeight = Math.min(revealIndex, displayList.length) * 90 + 40; 
+            
+            // Results list bg - slight contrast based on theme
+            if (config.theme === 'sand') ctx.fillStyle = 'rgba(87, 83, 78, 0.9)';
+            else if (config.theme === 'grass') ctx.fillStyle = 'rgba(20, 83, 45, 0.9)';
+            else ctx.fillStyle = 'rgba(30, 41, 59, 0.95)';
+            
+            ctx.fillRect(80, 760, ctx.canvas.width - 160, Math.min(listHeight, 1000));
+            
+            // Liste Elemanları
+            const itemsToShow = Math.min(revealIndex, displayList.length);
+            for (let i = 0; i < itemsToShow; i++) {
+                const item = displayList[i]; const yPos = 830 + i * 90;
+                if (item.isDots) { ctx.save(); ctx.fillStyle = '#64748b'; ctx.font = 'bold 60px monospace'; ctx.textAlign = 'center'; ctx.fillText('...', centerX, yPos - 10); ctx.restore(); }
+                else {
+                    ctx.save(); 
+                    const isLastOnes = item.rank > totalRacers - 3; 
+                    // Sıra
+                    ctx.fillStyle = isLastOnes ? '#f87171' : '#94a3b8'; 
+                    ctx.font = 'bold 40px monospace'; ctx.textAlign = 'right'; ctx.fillText(item.rank.toString(), 160, yPos);
+                    
+                    // İsim
+                    ctx.fillStyle = theme.text; 
+                    ctx.font = 'bold 36px "Inter", sans-serif'; ctx.textAlign = 'left'; const name = item.name.length > 15 ? item.name.substring(0, 15) + '...' : item.name; ctx.fillText(name, 200, yPos);
+                    
+                    // Süre
+                    ctx.fillStyle = isLastOnes ? '#f87171' : '#94a3b8'; 
+                    ctx.font = '30px monospace'; ctx.textAlign = 'right'; const timeText = item.finished ? (item.finishTime / 1000).toFixed(2) + 's' : (item.lap + ' Tur'); ctx.fillText(timeText, ctx.canvas.width - 120, yPos); ctx.restore();
+                }
+            }
+        };
+
+        const drawOverlayContent = (ctx, canvasWidth, canvasHeight, config) => {
+            const { followerCount, dayNumber, topText, bottomText } = config;
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            ctx.save();
+            ctx.globalCompositeOperation = 'source-over'; 
+            
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            ctx.font = 'bold 60px "Inter", sans-serif';
+            ctx.textAlign = 'center';
+            
+            const textColor = '#ffffff'; 
+            const strokeColor = 'rgba(0,0,0,0.8)'; 
+
+            ctx.shadowColor = 'transparent'; 
+            ctx.shadowBlur = 0; 
+            let yPos = canvasHeight - 150;
+            
+            if (followerCount) {
+                ctx.fillStyle = textColor;
+                const followerText = `${followerCount} FOLLOWER`;
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = 4; 
+                ctx.strokeText(followerText, canvasWidth / 2, yPos);
+                ctx.fillText(followerText, canvasWidth / 2, yPos);
+                yPos += 80;
+            }
+            
+            if (dayNumber) {
+                ctx.fillStyle = '#ef4444'; 
+                const dayText = `DAY ${dayNumber}`;
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = 4;
+                ctx.strokeText(dayText, canvasWidth / 2, yPos);
+                ctx.fillText(dayText, canvasWidth / 2, yPos);
+            }
+            
+            if (topText) {
+                ctx.font = 'bold 80px "Inter", sans-serif'; ctx.fillStyle = textColor; ctx.strokeStyle = strokeColor; ctx.lineWidth = 6;
+                const lineHeight = 90; const startY = 200; const lines = topText.split('\n');
+                for (let i = 0; i < lines.length; i++) { const y = startY + i * lineHeight; ctx.strokeText(lines[i], canvasWidth / 2, y); ctx.fillText(lines[i], canvasWidth / 2, y); }
+            }
+            
+            if (bottomText) {
+                ctx.font = 'bold 70px "Inter", sans-serif'; ctx.fillStyle = '#fbbf24'; 
+                ctx.strokeStyle = strokeColor; ctx.lineWidth = 6;
+                const lineHeight = 80; const bottomY = canvasHeight - 140; const lines = bottomText.split('\n'); const totalHeight = (lines.length - 1) * lineHeight; const startY = bottomY - totalHeight;
+                for (let i = 0; i < lines.length; i++) { const y = startY + i * lineHeight; ctx.strokeText(lines[i], canvasWidth / 2, y); ctx.fillText(lines[i], canvasWidth / 2, y); }
+            }
+            ctx.restore();
+        };
+
+        const drawPodiumProfile = (ctx, racer, x, y, radius, borderColor, label) => {
+            if (!racer) return;
+            ctx.save();
+            
+            // Shadow
+            ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 40; ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fillStyle = '#000'; ctx.fill(); ctx.shadowBlur = 0;
+            
+            // Body
+            if (racer.cachedLarge) {
+                 ctx.drawImage(racer.cachedLarge, x - radius, y - radius, radius * 2, radius * 2);
+            } else {
+                ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.closePath();
+                ctx.fillStyle = racer.color; ctx.fill(); 
+                ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = `bold ${radius * 0.8}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(racer.name.charAt(0).toUpperCase(), x, y);
+            }
+            ctx.restore();
+            
+            // Border
+            ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.lineWidth = 8; ctx.strokeStyle = borderColor; ctx.stroke();
+            
+            // Name
+            ctx.fillStyle = racer.color; 
+            ctx.font = `bold ${radius * 0.35}px "Inter", sans-serif`; ctx.textAlign = 'center';
+            const name = racer.name.length > 15 ? racer.name.substring(0, 15) + '...' : racer.name; ctx.fillText(name, x, y + radius + 40);
+            
+            // Rank
+            ctx.save(); ctx.fillStyle = borderColor; ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.font = `bold ${radius * 0.6}px "Inter", sans-serif`; ctx.strokeText(label, x, y - radius - 10); ctx.fillText(label, x, y - radius - 10); ctx.restore();
+        };
+
+        // ============================================================================
+        // --- MAIN COMPONENT ---
+        // ============================================================================
+        const InstagramGrandPrix = () => {
+            const canvasRef = useRef(null);
+            const animationRef = useRef(null);
+            const mediaRecorderRef = useRef(null);
+            const recordedChunksRef = useRef([]);
+            const videoUrlRef = useRef(null);
+            const fileInputRef = useRef(null);
+            const musicInputRef = useRef(null);
+            const effectInputRef = useRef(null); // EFEKT INPUT
+            const effectVideoRef = useRef(document.createElement('video')); // EFEKT VİDEOSU
+            
+            const staticTrackCanvasRef = useRef(null);
+
+            const audioContextRef = useRef(null);
+            const audioDestinationRef = useRef(null);
+            const gainNodeRef = useRef(null);
+            const bgmSourceRef = useRef(null);
+            const bgmBufferRef = useRef(null);
+            const winBufferRef = useRef(null);
+
+            const engineRef = useRef({
+                racers: [], trackPoints: [], trackCenter: { x: 0, y: 0 },
+                camera: { x: 0, y: 0, zoom: 6.0 }, finishedCount: 0, startTime: 0,
+                isEnding: false, globalOpacity: 1.0, showingResults: false,
+                hasPlayedWinSound: false, resultRevealIndex: 0, finalResults: null,
+                isStopping: false,
+                lastFrameTime: 0,
+                accumulatedTime: 0,
+                sortedRacers: [],
+                revealTimer: 0,
+                cooldownTimer: 0, 
+                cachedOverlay: null // Store cached overlay canvas
+            });
+
+            const [gameState, setGameState] = useState('menu');
+            const [countdown, setCountdown] = useState(3);
+            const [isSpeakerMuted, setIsSpeakerMuted] = useState(true);
+            const [customMusicName, setCustomMusicName] = useState(null);
+            const [customEffectName, setCustomEffectName] = useState(null); // EFEKT İSMİ
+            const [dragActive, setDragActive] = useState(false);
+            const [importedUsers, setImportedUsers] = useState(null);
+            const [finalResults, setFinalResults] = useState(null);
+            const [allRaceResults, setAllRaceResults] = useState(null);
+            const [showFinalModal, setShowFinalModal] = useState(false);
+            const [revealedResultsCount, setRevealedResultsCount] = useState(0);
+            const [cameraMode, setCameraMode] = useState('leader');
+            const [isRecording, setIsRecording] = useState(false);
+            const [recordedVideoUrl, setRecordedVideoUrl] = useState(null);
+
+            const cameraModeRef = useRef(cameraMode);
+            const configRef = useRef(null);
+
+            const [config, setConfig] = useState({
+                track: 'spa', 
+                theme: 'sand', // Default to SAND for a change
+                racerCount: 50, 
+                laps: 2, 
+                followerCount: '', 
+                dayNumber: '', 
+                topText: '', 
+                bottomText: ''
+            });
+            configRef.current = config;
+
+            const currentTrackData = useMemo(() => TRACKS[config.track], [config.track]);
+            const currentTheme = THEMES[config.theme];
+
+            // UPDATE BODY BG on theme change
+            useEffect(() => {
+                document.body.style.backgroundColor = currentTheme.bg;
+                document.body.style.color = currentTheme.text;
+            }, [config.theme, currentTheme]);
+
+            useEffect(() => { cameraModeRef.current = cameraMode; }, [cameraMode]);
+            useEffect(() => { configRef.current = config; }, [config]);
+
+            // EFEKT VİDEO AYARLARI
+            useEffect(() => {
+                effectVideoRef.current.crossOrigin = "anonymous";
+                effectVideoRef.current.loop = true;
+                effectVideoRef.current.muted = true;
+                effectVideoRef.current.playsInline = true;
+            }, []);
+
+            // --- AUDIO SETUP ---
+            useEffect(() => {
+                let isMounted = true;
+                const initAudio = async () => {
+                    try {
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        audioContextRef.current = new AudioContext();
+                        audioDestinationRef.current = audioContextRef.current.createMediaStreamDestination();
+                        gainNodeRef.current = audioContextRef.current.createGain();
+                        gainNodeRef.current.gain.value = 0;
+                        gainNodeRef.current.connect(audioContextRef.current.destination);
+                        const loadBuffer = async (url) => {
+                            try {
+                                const response = await fetch(url);
+                                if (!response.ok) throw new Error(`HTTP Error`);
+                                const arrayBuffer = await response.arrayBuffer();
+                                return await audioContextRef.current.decodeAudioData(arrayBuffer);
+                            } catch (err) { console.warn(`Audio load failed:`, err); return null; }
+                        };
+                        const [bgm, win] = await Promise.all([loadBuffer(DEFAULT_BGM_URL), loadBuffer(WIN_SFX_URL)]);
+                        if (isMounted) { if (bgm) bgmBufferRef.current = bgm; if (win) winBufferRef.current = win; }
+                    } catch (e) { console.error("Audio system init failed:", e); }
+                };
+                initAudio();
+                return () => { isMounted = false; if (audioContextRef.current) audioContextRef.current.close(); };
+            }, []);
+
+            useEffect(() => { if (gainNodeRef.current) gainNodeRef.current.gain.value = isSpeakerMuted ? 0 : 0.5; }, [isSpeakerMuted]);
+
+            const handleMusicUpload = useCallback(async (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !file.type.startsWith('audio/')) { alert("Geçerli ses dosyası seçin"); return; }
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    if (audioContextRef.current) {
+                        const decodedData = await audioContextRef.current.decodeAudioData(arrayBuffer);
+                        bgmBufferRef.current = decodedData;
+                        setCustomMusicName(file.name);
+                    }
+                } catch (err) { alert("Müzik dosyası bozuk."); }
+            }, []);
+
+             // EFEKT YÜKLEME
+            const handleEffectUpload = useCallback((e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    effectVideoRef.current.src = url;
+                    setCustomEffectName(file.name);
+                }
+            }, []);
+
+            const handleFiles = useCallback(async (files) => {
+                const imageFiles = files.filter(file => file.type.startsWith('image/'));
+                const htmlFile = files.find(file => file.type === 'text/html' || file.name.endsWith('.html'));
+                const audioFile = files.find(file => file.type.startsWith('audio/'));
+
+                if (audioFile) handleMusicUpload({ target: { files: [audioFile] } });
+
+                if (imageFiles.length > 0) {
+                    const extractedUsers = await Promise.all(imageFiles.map(async file => {
+                        const imgUrl = URL.createObjectURL(file);
+                        const optimized = await createOptimizedAvatar(imgUrl);
+                        return {
+                            name: file.name.replace(/\.[^/.]+$/, ""),
+                            image: imgUrl,
+                            cachedSmall: optimized ? optimized.small : null,
+                            cachedLarge: optimized ? optimized.large : null
+                        };
+                    }));
+                    if (extractedUsers.length > 0) {
+                        setImportedUsers(extractedUsers);
+                        setConfig(prev => ({ ...prev, racerCount: extractedUsers.length }));
+                    }
+                } else if (htmlFile) {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            const htmlContent = e.target.result;
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(htmlContent, 'text/html');
+                            const tempUsers = [];
+                            const seenNames = new Set();
+                            const links = doc.querySelectorAll('a');
+                            links.forEach(link => {
+                                const img = link.querySelector('img');
+                                const text = link.innerText.trim();
+                                let username = text;
+                                if (!username && img?.alt) username = img.alt.replace("'s profile picture", "").replace(" profil resmi", "");
+                                let imgSrc = img?.src || null;
+                                const isInstaLink = link.href?.includes('instagram.com');
+                                if (username && username.length > 1 && username.length < 30 && !seenNames.has(username)) {
+                                    if (isInstaLink || !username.includes(' ')) {
+                                         tempUsers.push({ name: username, image: imgSrc });
+                                         seenNames.add(username);
+                                    }
+                                }
+                            });
+                            if (tempUsers.length < 5) {
+                                const imgs = doc.querySelectorAll('img');
+                                imgs.forEach(img => {
+                                    if (img.alt && img.alt.length > 1 && !seenNames.has(img.alt)) {
+                                        tempUsers.push({ name: img.alt.replace("'s profile picture", ""), image: img.src });
+                                        seenNames.add(img.alt);
+                                    }
+                                });
+                            }
+                            const finalUsers = await Promise.all(tempUsers.map(async u => {
+                                let optimized = { small: null, large: null };
+                                if (u.image) {
+                                    const res = await createOptimizedAvatar(u.image);
+                                    if(res) optimized = res;
+                                }
+                                return {
+                                    ...u,
+                                    cachedSmall: optimized.small,
+                                    cachedLarge: optimized.large
+                                };
+                            }));
+                            if (finalUsers.length > 0) {
+                                setImportedUsers(finalUsers);
+                                setConfig(prev => ({ ...prev, racerCount: finalUsers.length }));
+                            } else { alert("HTML dosyasından kullanıcı bulunamadı."); }
+                        } catch (err) { console.error(err); alert("HTML dosyası okunamadı."); }
+                    };
+                    reader.readAsText(htmlFile);
+                }
+            }, [handleMusicUpload]);
+
+            const handleDrag = useCallback(async (e) => {
+                e.preventDefault(); e.stopPropagation(); setDragActive(false);
+                const items = e.dataTransfer.items;
+                const files = [];
+                const getAllEntries = (dirReader) => {
+                    return new Promise((resolve, reject) => {
+                        let allEntries = [];
+                        const read = () => { dirReader.readEntries((entries) => { if (entries.length === 0) resolve(allEntries); else { allEntries = allEntries.concat(entries); read(); } }, reject); };
+                        read();
+                    });
+                };
+                if (items?.length > 0 && items[0].webkitGetAsEntry) {
+                    const traverseFileTree = async (item) => {
+                        if (item.isFile) return new Promise((resolve) => item.file((file) => { files.push(file); resolve(); }));
+                        else if (item.isDirectory) { const dirReader = item.createReader(); const entries = await getAllEntries(dirReader); await Promise.all(entries.map(entry => traverseFileTree(entry))); }
+                    };
+                    const promises = []; for (let i = 0; i < items.length; i++) { const item = items[i].webkitGetAsEntry(); if (item) promises.push(traverseFileTree(item)); }
+                    await Promise.all(promises); handleFiles(files);
+                } else if (e.dataTransfer.files?.length > 0) handleFiles(Array.from(e.dataTransfer.files));
+            }, [handleFiles]);
+
+            const handleDrop = useCallback((e) => handleDrag(e), [handleDrag]);
+            const handleChange = useCallback((e) => { e.preventDefault(); if (e.target.files?.length > 0) handleFiles(Array.from(e.target.files)); }, [handleFiles]);
+
+            const clearImportedUsers = useCallback(() => {
+                if (importedUsers) { importedUsers.forEach(u => { if (u.image?.startsWith('blob:')) URL.revokeObjectURL(u.image); }); }
+                setImportedUsers(null); setConfig(prev => ({ ...prev, racerCount: 50 })); if (fileInputRef.current) fileInputRef.current.value = "";
+            }, [importedUsers]);
+
+            // --- RECORDING ---
+            const startRecording = useCallback(() => {
+                if (!canvasRef.current) return;
+                if (mediaRecorderRef.current?.state !== 'inactive') { try { mediaRecorderRef.current?.stop(); } catch (e) { } }
+                mediaRecorderRef.current = null; recordedChunksRef.current = [];
+                
+                const canvasStream = canvasRef.current.captureStream(60); 
+                let finalStream = canvasStream;
+                const hasAudio = bgmBufferRef.current || winBufferRef.current;
+                if (hasAudio && audioDestinationRef.current) {
+                    const audioStream = audioDestinationRef.current.stream; const audioTracks = audioStream.getAudioTracks();
+                    if (audioTracks.length > 0) finalStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
+                }
+                const mimeTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+                let selectedMimeType = 'video/webm';
+                for (const type of mimeTypes) { if (MediaRecorder.isTypeSupported(type)) { selectedMimeType = type; break; } }
+                
+                try {
+                    mediaRecorderRef.current = new MediaRecorder(finalStream, { 
+                        mimeType: selectedMimeType, 
+                        videoBitsPerSecond: 8000000 // 8 Mbps (High Quality)
+                    });
+                    mediaRecorderRef.current.ondataavailable = (event) => { if (event.data?.size > 0) recordedChunksRef.current.push(event.data); };
+                    mediaRecorderRef.current.start(50); 
+                    setIsRecording(true);
+                    if (bgmBufferRef.current && hasAudio) {
+                        if (audioContextRef.current.state === 'suspended') {
+                            audioContextRef.current.resume().catch(e => console.error("Audio resume error:", e));
+                        }
+                        try {
+                            if (bgmSourceRef.current) { try { bgmSourceRef.current.stop(); } catch (e) { } }
+                            const source = audioContextRef.current.createBufferSource(); source.buffer = bgmBufferRef.current; source.loop = true;
+                            const vol = audioContextRef.current.createGain(); vol.gain.value = 0.4;
+                            source.connect(vol); vol.connect(audioDestinationRef.current); vol.connect(gainNodeRef.current);
+                            source.start(0); bgmSourceRef.current = source;
+                        } catch (err) { console.error("BGM start error:", err); }
+                    }
+                } catch (err) { console.error("Recording failed:", err); }
+            }, []);
+
+            const stopRecording = useCallback(() => {
+                return new Promise((resolve) => {
+                    if (mediaRecorderRef.current?.state !== 'inactive') {
+                        const recorder = mediaRecorderRef.current;
+                        
+                        // Veriyi garantiye al
+                        if (recorder.state === 'recording') {
+                            recorder.requestData();
+                        }
+
+                        recorder.onstop = () => {
+                            try {
+                                const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType });
+                                if (blob.size === 0) { resolve(null); return; }
+                                const url = URL.createObjectURL(blob); videoUrlRef.current = url; setRecordedVideoUrl(url); setIsRecording(false);
+                                
+                                // SAFE STOP AUDIO
+                                try {
+                                    if (bgmSourceRef.current) { try { bgmSourceRef.current.stop(); } catch (e) { } bgmSourceRef.current = null; }
+                                } catch(e) { console.error("Stop audio error:", e); }
+                                
+                                resolve(url);
+                            } catch (e) { resolve(null); }
+                        };
+                        recorder.stop();
+                    } else { resolve(null); }
+                });
+            }, []);
+
+            const downloadVideo = useCallback(() => {
+                const url = recordedVideoUrl || videoUrlRef.current; if (!url) return;
+                const a = document.createElement('a'); a.href = url; a.download = `instagram-gp-${config.followerCount || 'race'}.webm`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            }, [recordedVideoUrl, config.followerCount]);
+
+            const downloadJSON = useCallback(() => {
+                if (!allRaceResults) return;
+                const jsonString = JSON.stringify(allRaceResults, null, 2); const blob = new Blob([jsonString], { type: 'application/json' }); const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = `sonuclar.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            }, [allRaceResults]);
+
+            const handleResize = useCallback(() => { if (canvasRef.current) { canvasRef.current.width = 1080; canvasRef.current.height = 1920; } }, []);
+
+            // --- GAME LOOP START ---
+            const startSequence = useCallback(async () => {
+                if (!canvasRef.current) return;
+                
+                // EFEKTİ SIFIRLA (BAŞA SAR)
+                if (effectVideoRef.current) {
+                    effectVideoRef.current.currentTime = 0;
+                    effectVideoRef.current.pause();
+                }
+
+                // Audio Context Resume Check
+                if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+                    await audioContextRef.current.resume();
+                }
+                
+                if (recordedVideoUrl) URL.revokeObjectURL(recordedVideoUrl); if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
+                videoUrlRef.current = null; setRecordedVideoUrl(null); handleResize();
+
+                const trackData = currentTrackData;
+                const smoothTrack = addCurveData(generateSmoothTrack(trackData.points));
+                const bounds = calculateTrackBounds(smoothTrack); 
+                const engine = engineRef.current;
+                
+                const staticData = renderStaticTrack(smoothTrack, trackData.width, bounds, THEMES[configRef.current.theme].surface);
+                staticTrackCanvasRef.current = staticData;
+
+                // CACHE OVERLAY TEXT
+                const overlayCvs = document.createElement('canvas');
+                overlayCvs.width = 1080;
+                overlayCvs.height = 1920;
+                const oCtx = overlayCvs.getContext('2d');
+                drawOverlayContent(oCtx, 1080, 1920, configRef.current); 
+                engine.cachedOverlay = overlayCvs;
+
+                engine.trackPoints = smoothTrack; 
+                engine.trackCenter = bounds.center; 
+                const startPoint = smoothTrack[0]; const lookAt = smoothTrack[10];
+                const startAngle = Math.atan2(lookAt.y - startPoint.y, lookAt.x - startPoint.x); const trackWidth = trackData.width;
+
+                const racersData = importedUsers?.length > 0
+                    ? importedUsers
+                    : Array.from({ length: config.racerCount }, (_, i) => ({ name: `@takipci${i + 1}`, image: null }));
+
+                engine.racers = racersData.map((userData, i) => {
+                    const finalRadius = (5 + Math.random() * 2) * 1.3;
+                    const initialLaneOffset = (Math.random() - 0.5) * (trackWidth * 0.8);
+                    
+                    return {
+                        id: i, name: userData.name, image: userData.image,
+                        cachedSmall: userData.cachedSmall, 
+                        cachedLarge: userData.cachedLarge, 
+                        color: generateRandomColor(),
+                        x: startPoint.x + Math.cos(startAngle + Math.PI / 2) * initialLaneOffset + (Math.random() * 40 - 20),
+                        y: startPoint.y + Math.sin(startAngle + Math.PI / 2) * initialLaneOffset + (Math.random() * 40 - 20),
+                        vx: 0, vy: 0, speed: 0, angle: startAngle,
+                        baseSpeed: 3.5 + Math.random() * 1.0, 
+                        currentSpeedOffset: 0,
+                        maxSpeed: 8, 
+                        acceleration: 0.1 + Math.random() * 0.03, 
+                        radius: finalRadius, currentPointIndex: 0, lap: 0, finished: false, finishTime: 0, rank: i + 1,
+                        opacity: 1.0, laneOffset: initialLaneOffset, laneDriftSpeed: (Math.random() - 0.5) * 0.15, passedMidpoint: false
+                    };
+                });
+
+                engine.finishedCount = 0; engine.isEnding = false; engine.globalOpacity = 1.0; engine.showingResults = false;
+                engine.hasPlayedWinSound = false; engine.resultRevealIndex = 0; engine.finalResults = null;
+                engine.isStopping = false;
+                engine.sortedRacers = [];
+                engine.leaderboardShowTime = 0; 
+                engine.camera = { x: startPoint.x, y: startPoint.y, zoom: 6.0 };
+                engine.cameraVelocity = { x: 0, y: 0 };
+                
+                engine.lastFrameTime = performance.now();
+                engine.accumulatedTime = 0;
+
+                setAllRaceResults(null); setGameState('countdown'); setCountdown(3); setFinalResults(null); setShowFinalModal(false); setRevealedResultsCount(0);
+
+                let count = 3;
+                const countInterval = setInterval(() => {
+                    count--; setCountdown(count);
+                    if (count <= 0) { clearInterval(countInterval); setGameState('racing'); engine.startTime = Date.now(); startLoop(); setTimeout(() => startRecording(), 100); }
+                }, 1000);
+            }, [currentTrackData, importedUsers, config.racerCount, handleResize, startRecording, config]);
+
+            const startLoop = useCallback(() => {
+                let totalTicks = 0; 
+                const trackWidth = currentTrackData.width; 
+                const totalLaps = configRef.current.laps; 
+                const configSnapshot = { ...configRef.current };
+                const engine = engineRef.current;
+
+                const updatePhysics = (dt) => {
+                    totalTicks += dt;
+                    const track = engine.trackPoints;
+                    const trackLen = track.length;
+
+                    if (engine.showingResults) return; 
+                    if (engine.isEnding) { 
+                        engine.globalOpacity -= 0.02 * dt; 
+                        if (engine.globalOpacity <= 0) { 
+                            engine.globalOpacity = 0; engine.showingResults = true; engine.resultRevealIndex = 0; 
+                            engine.leaderboardShowTime = Date.now(); // SÜRE BAŞLADI
+                            
+                            // EFEKT VİDEOSUNU BAŞLAT
+                            if (effectVideoRef.current && effectVideoRef.current.src && effectVideoRef.current.paused) {
+                                effectVideoRef.current.play().catch(e => console.log("Video play error", e));
+                            }
+                        } 
+                    }
+
+                    const activeRacers = engine.racers.filter(r => !r.finished);
+                    const leaderRacer = activeRacers.length > 0 ? activeRacers.reduce((best, r) => (r.lap * 100000 + r.currentPointIndex) > (best.lap * 100000 + best.currentPointIndex) ? r : best) : null;
+
+                    for (const r of engine.racers) {
+                        if (r.finished && !engine.isEnding) { if (r.opacity > 0) r.opacity -= 0.015 * dt; continue; }
+                        if ((engine.isEnding ? engine.globalOpacity : r.opacity) <= 0) continue;
+                        
+                        if (totalTicks % 120 < dt) r.currentSpeedOffset = (Math.random() - 0.5) * 1.6;
+                        
+                        let multiplier = 1.0;
+                        if (leaderRacer && r !== leaderRacer) {
+                            const diff = (leaderRacer.lap * trackLen + leaderRacer.currentPointIndex) - (r.lap * trackLen + r.currentPointIndex);
+                            if (diff > trackLen * 0.3) multiplier = 1.15; else if (diff > trackLen * 0.1) multiplier = 1.05;
+                        }
+                        if (r === leaderRacer && activeRacers.length > 1) multiplier = 0.98;
+
+                        const lookAhead = 15 + (r.speed * 2);
+                        const targetIdx = (r.currentPointIndex + Math.floor(lookAhead)) % trackLen;
+                        const targetP = track[targetIdx];
+                        const nextP = track[(targetIdx + 5) % trackLen];
+                        let dx = nextP.x - targetP.x, dy = nextP.y - targetP.y; const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                        dx /= len; dy /= len; const nx = -dy, ny = dx;
+
+                        r.laneOffset += r.laneDriftSpeed * dt;
+                        const maxOff = trackWidth * 0.4;
+                        if (Math.abs(r.laneOffset) > maxOff) { r.laneOffset = Math.sign(r.laneOffset) * maxOff; r.laneDriftSpeed *= -1; }
+                        
+                        const tx = targetP.x + nx * r.laneOffset, ty = targetP.y + ny * r.laneOffset;
+                        const ddx = tx - r.x, ddy = ty - r.y; const dist = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
+                        
+                        r.vx += (ddx / dist) * r.acceleration * dt; 
+                        r.vy += (ddy / dist) * r.acceleration * dt;
+                        r.vx *= Math.pow(0.98, dt); r.vy *= Math.pow(0.98, dt); 
+                        
+                        r.speed = Math.sqrt(r.vx * r.vx + r.vy * r.vy);
+                        const maxSpd = (r.baseSpeed + r.currentSpeedOffset) * multiplier;
+                        if (r.speed > maxSpd) { const ratio = maxSpd / r.speed; r.vx *= ratio; r.vy *= ratio; }
+                        
+                        r.x += r.vx * dt; r.y += r.vy * dt;
+
+                        // REVERTED: Back to full range check for accuracy
+                        let bestDist = Infinity, bestIdx = -1;
+                        for (let i = -20; i < 40; i++) {
+                            const idx = (r.currentPointIndex + i + trackLen) % trackLen; const tp = track[idx];
+                            const d = (r.x - tp.x) ** 2 + (r.y - tp.y) ** 2;
+                            if (d < bestDist) { bestDist = d; bestIdx = idx; }
+                        }
+                        
+                        if (bestIdx > trackLen * 0.45 && bestIdx < trackLen * 0.55) r.passedMidpoint = true;
+                        
+                        const diff = bestIdx - r.currentPointIndex;
+                        if (Math.abs(diff) < 60 || diff < -trackLen/2 || diff > trackLen/2) {
+                            if (diff < -trackLen/2 && r.passedMidpoint) { 
+                                r.lap++; r.passedMidpoint = false; 
+                                if (r.lap >= totalLaps) { 
+                                    r.finished = true; 
+                                    r.finishTime = Date.now() - engine.startTime; 
+                                    r.finishPos = ++engine.finishedCount; 
+                                } 
+                            }
+                            r.currentPointIndex = bestIdx;
+                        }
+
+                        const cd = Math.sqrt(bestDist); const hw = trackWidth / 2; const isC = track[bestIdx].isCurve;
+                        if (isC && cd > hw - r.radius) { r.speed *= Math.pow(0.96, dt); r.vx *= Math.pow(0.96, dt); r.vy *= Math.pow(0.96, dt); r.x += (Math.random() - 0.5) * 1.5 * dt; r.y += (Math.random() - 0.5) * 1.5 * dt; }
+                        
+                        const bound = hw + (isC ? 25 : 5) - r.radius;
+                        if (cd > bound) {
+                            const tp = track[bestIdx]; const nX = (r.x - tp.x) / cd, nY = (r.y - tp.y) / cd;
+                            const push = cd - bound; r.x -= nX * push; r.y -= nY * push;
+                            
+                            if (totalTicks > 120) {
+                                const dot = r.vx * nX + r.vy * nY; 
+                                r.vx = (r.vx - 2 * dot * nX) * Math.pow(0.95, dt); 
+                                r.vy = (r.vy - 2 * dot * nY) * Math.pow(0.95, dt);
+                            }
+                            r.laneDriftSpeed *= -1.5; r.laneDriftSpeed = Math.max(Math.min(r.laneDriftSpeed, 0.3), -0.3);
+                        }
+                    }
+                };
+
+                const loop = (timestamp) => {
+                    if (!canvasRef.current) return;
+                    
+                    let deltaTime = timestamp - engine.lastFrameTime;
+                    if (deltaTime > 60) deltaTime = 60; // Max frame time to prevent huge jumps
+
+                    engine.lastFrameTime = timestamp;
+                    const dt = deltaTime / 16.667; 
+                    
+                    updatePhysics(dt);
+
+                    const ctx = canvasRef.current.getContext('2d');
+                    
+                    // --- RESULTS SCREEN ---
+                    if (engine.showingResults) {
+                        if (!engine.finalResults) {
+                            engine.showingResults = false;
+                        } else {
+                            if (!engine.hasPlayedWinSound) {
+                                engine.hasPlayedWinSound = true;
+                                // SAFE AUDIO PLAY
+                                try {
+                                    if (bgmSourceRef.current) { try { bgmSourceRef.current.stop(); } catch(e){} bgmSourceRef.current = null; }
+                                    if (winBufferRef.current && audioContextRef.current) {
+                                        const source = audioContextRef.current.createBufferSource(); source.buffer = winBufferRef.current;
+                                        const vol = audioContextRef.current.createGain(); vol.gain.value = 0.8; source.connect(vol); vol.connect(audioDestinationRef.current); vol.connect(gainNodeRef.current); source.start(0);
+                                    }
+                                } catch(e) { console.error("Win sound error:", e); }
+                            }
+                            
+                            // OVERLAY PARAMETRESİ NULL GEÇİLİYOR (YAZILAR GİZLENSİN DİYE)
+                            // AMA EFEKT VİDEOSU GEÇİLİYOR
+                            drawResultsScreen(ctx, engine.finalResults, engine.resultRevealIndex, configSnapshot, null, effectVideoRef.current);
+                            const totalItemsToShow = engine.finalResults.displayList.length;
+                            
+                            if (engine.resultRevealIndex < totalItemsToShow) { 
+                                engine.revealTimer += dt;
+                                if (engine.revealTimer > 6) { 
+                                    engine.resultRevealIndex++; 
+                                    setRevealedResultsCount(engine.resultRevealIndex);
+                                    engine.revealTimer = 0;
+                                } 
+                            } else {
+                                engine.cooldownTimer += dt;
+                            }
+                            
+                            // AUTO-STOP LOGIC (7 SECONDS BUFFER)
+                            // Liste tamamen açıldıktan SONRA 7 saniye (7000ms) bekle.
+                            if (engine.resultRevealIndex >= totalItemsToShow) {
+                                if (Date.now() - engine.leaderboardShowTime > 7000) { 
+                                     if (!engine.isStopping) {
+                                        engine.isStopping = true;
+                                        // 1 saniye de buffer ekleyip durdur
+                                        setTimeout(() => {
+                                            stopRecording().then(() => {
+                                                cancelAnimationFrame(animationRef.current); 
+                                                setShowFinalModal(true); 
+                                            });
+                                        }, 1000);
+                                    }
+                                }
+                            }
+                            
+                            animationRef.current = requestAnimationFrame(loop); 
+                            return;
+                        }
+                    }
+
+                    // --- RACE RENDER ---
+                    const activeRacers = engine.racers.filter(r => !r.finished);
+                    const leaderRacer = activeRacers.length > 0 ? activeRacers.reduce((best, r) => (r.lap * 100000 + r.currentPointIndex) > (best.lap * 100000 + best.currentPointIndex) ? r : best) : null;
+                    const leader = activeRacers.length > 0 ? leaderRacer : engine.racers[0];
+                    
+                    let tCx, tCy, tZ;
+                    if (cameraModeRef.current === 'leader' && leader && !engine.isEnding) { 
+                        const trackLen = engine.trackPoints.length;
+                        const lookAhead = 4 + (leader.speed * 0.6); 
+                        const targetIdx = Math.floor(leader.currentPointIndex + lookAhead) % trackLen;
+                        const trackTargetP = engine.trackPoints[targetIdx];
+                        const currentIdx = Math.floor(leader.currentPointIndex) % trackLen;
+                        const trackCurrentP = engine.trackPoints[currentIdx];
+
+                        tCx = (trackCurrentP.x * 0.6) + (trackTargetP.x * 0.4);
+                        tCy = (trackCurrentP.y * 0.6) + (trackTargetP.y * 0.4);
+                        const speedFactor = leader.speed / leader.maxSpeed;
+                        tZ = 6.0 - (speedFactor * 1.5); // ÇOK DAHA YAKIN ZOOM (Min 4.5, Max 6.0)
+                        const smoothFactor = 0.1 * dt; 
+
+                        engine.camera.x += (tCx - engine.camera.x) * smoothFactor;
+                        engine.camera.y += (tCy - engine.camera.y) * smoothFactor;
+                        engine.camera.zoom += (tZ - engine.camera.zoom) * (smoothFactor * 0.5);
+                    } else { 
+                        tCx = engine.trackCenter.x; tCy = engine.trackCenter.y; tZ = currentTrackData.zoom * 1.8; 
+                        const camLerp = 1 - Math.pow(0.1, dt);
+                        engine.camera.x += (tCx - engine.camera.x) * camLerp; 
+                        engine.camera.y += (tCy - engine.camera.y) * camLerp; 
+                        engine.camera.zoom += (tZ - engine.camera.zoom) * (camLerp * 0.8);
+                    }
+                    
+                    // THEME BACKGROUND FOR CANVAS (Important for canvas clear)
+                    const theme = THEMES[configSnapshot.theme];
+                    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = theme.surface; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                    ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2); ctx.scale(engine.camera.zoom, engine.camera.zoom); ctx.translate(-engine.camera.x, -engine.camera.y);
+                    
+                    if (staticTrackCanvasRef.current) {
+                        const { canvas, offsetX, offsetY } = staticTrackCanvasRef.current;
+                        ctx.drawImage(canvas, -offsetX, -offsetY);
+                    } else {
+                        renderStaticTrack(engine.trackPoints, trackWidth, calculateTrackBounds(engine.trackPoints), theme.surface);
+                    }
+
+                    const viewMinX = engine.camera.x - (ctx.canvas.width / 2) / engine.camera.zoom - 50;
+                    const viewMaxX = engine.camera.x + (ctx.canvas.width / 2) / engine.camera.zoom + 50;
+                    const viewMinY = engine.camera.y - (ctx.canvas.height / 2) / engine.camera.zoom - 50;
+                    const viewMaxY = engine.camera.y + (ctx.canvas.height / 2) / engine.camera.zoom + 50;
+
+                    for (const r of engine.racers) {
+                        if (r.x < viewMinX || r.x > viewMaxX || r.y < viewMinY || r.y > viewMaxY) continue;
+                        drawRacer(ctx, r, engine.isEnding ? engine.globalOpacity : r.opacity, true, cameraModeRef.current, engine.isEnding);
+                    }
+
+                    if (!engine.showingResults) {
+                        // Use Cached Overlay ONLY during race
+                        if (engine.cachedOverlay) {
+                            ctx.setTransform(1, 0, 0, 1, 0, 0);
+                            ctx.drawImage(engine.cachedOverlay, 0, 0);
+                        }
+                    }
+
+                    if (totalTicks % 20 < dt) {
+                        const sorted = [...engine.racers].sort((a, b) => {
+                            if (a.finished && !b.finished) return -1; if (!a.finished && b.finished) return 1; if (a.finished && b.finished) return a.finishPos - b.finishPos;
+                            return (b.lap * 100000 + b.currentPointIndex) - (a.lap * 100000 + a.currentPointIndex);
+                        });
+                        sorted.forEach((r, i) => r.rank = i + 1);
+                        engine.sortedRacers = sorted; // Cache for drawing
+
+                        if (!engine.isEnding && engine.finishedCount >= Math.min(engine.racers.length, 20)) {
+                            setGameState('finished');
+                            
+                            // --- JSON DATA CALCULATION FOR DNF FIX ---
+                            let lastTime = 0;
+                            const fullList = sorted.map((r, i) => {
+                                let currentTimeVal;
+                                
+                                if (r.finished) {
+                                    currentTimeVal = r.finishTime;
+                                } else {
+                                    const randomGap = 5 + Math.random() * 15; 
+                                    currentTimeVal = lastTime + randomGap;
+                                }
+                                
+                                lastTime = currentTimeVal; 
+
+                                return {
+                                    Sira: i + 1,
+                                    Isim: r.name,
+                                    Durum: 'Tamamladı', 
+                                    Sure: (currentTimeVal / 1000).toFixed(3) + ' sn',
+                                    Tur: configRef.current.laps
+                                };
+                            });
+                            // ------------------------------------------
+
+                            setAllRaceResults(fullList);
+                            const displayList = [];
+                            for (let i = 3; i < 10 && i < sorted.length; i++) { displayList.push(sorted[i]); }
+                            if (sorted.length > 13) { 
+                                displayList.push({ isDots: true });
+                                displayList.push(...sorted.slice(-3));
+                            }
+                            else { for(let i=10; i<sorted.length; i++) displayList.push(sorted[i]); }
+                            const res = { top3: sorted.slice(0, 3), displayList, totalRacers: sorted.length };
+                            engine.finalResults = res; setFinalResults(res); engine.isEnding = true;
+                            totalTicks = 0; 
+                        }
+                    }
+                    animationRef.current = requestAnimationFrame(loop);
+                };
+                engine.lastFrameTime = performance.now();
+                animationRef.current = requestAnimationFrame(loop);
+            }, [currentTrackData, stopRecording]);
+
+            useEffect(() => { handleResize(); }, [handleResize]);
+            useEffect(() => { return () => cancelAnimationFrame(animationRef.current); }, []);
+            const handleExitRace = useCallback(() => { setGameState('menu'); stopRecording(); cancelAnimationFrame(animationRef.current); if (recordedVideoUrl) URL.revokeObjectURL(recordedVideoUrl); setRecordedVideoUrl(null); }, [stopRecording, recordedVideoUrl]);
+            const handleReturnToMenu = useCallback(() => { if (recordedVideoUrl) URL.revokeObjectURL(recordedVideoUrl); setRecordedVideoUrl(null); setGameState('menu'); }, [recordedVideoUrl]);
+            const trackButtons = useMemo(() => Object.entries(TRACKS).map(([key, track]) => (<button key={key} onClick={() => setConfig(prev => ({ ...prev, track: key }))} className={`p-3 rounded-xl border flex items-center justify-between transition-all ${config.track === key ? `${currentTheme.accent} text-white` : `bg-white/10 text-white/70 hover:bg-white/20 border-white/10`}`}><span className="font-bold text-sm">{track.name}</span>{config.track === key && <Activity size={16} className="animate-pulse" />}</button>)), [config.track, currentTheme.accent]);
+            const lapButtons = useMemo(() => LAP_OPTIONS.map(lap => (<button key={lap} onClick={() => setConfig(prev => ({ ...prev, laps: lap }))} className={`flex-1 py-2 rounded-lg text-sm font-bold border ${config.laps === lap ? 'bg-orange-500 border-orange-400 text-white' : 'bg-white/10 text-white/70 border-white/10'}`}>{lap}</button>)), [config.laps]);
+            const themeButtons = useMemo(() => Object.entries(THEMES).map(([key, theme]) => (<button key={key} onClick={() => setConfig(prev => ({ ...prev, theme: key }))} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${config.theme === key ? 'bg-white text-black border-white' : 'bg-black/30 text-white/60 border-white/10 hover:bg-white/10'}`}>{theme.name}</button>)), [config.theme]);
+
+            return (
+                <div className={`min-h-screen font-sans transition-colors duration-500`} style={{ backgroundColor: currentTheme.bg, color: currentTheme.text }}>
+                    <div className="max-w-6xl mx-auto p-4">
+                        {gameState === 'menu' ? (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                                <div className={`p-6 rounded-2xl border shadow-xl max-h-[85vh] overflow-y-auto custom-scrollbar ${currentTheme.panel}`}>
+                                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+                                        <div className="flex items-center gap-2"><Settings className="text-white" size={20} /><h2 className="font-bold text-lg">Yarış Ayarları</h2></div>
+                                        <button onClick={() => setIsSpeakerMuted(!isSpeakerMuted)} className="p-2 rounded-full hover:bg-white/10 transition">{isSpeakerMuted ? <VolumeX size={20} className="text-red-400" /> : <Volume2 size={20} className="text-green-400" />}</button>
+                                    </div>
+                                    <div className="space-y-6">
+                                        
+                                        {/* THEME SELECTOR */}
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-2"><Palette size={16} className="text-white/70" /><span className="text-xs font-bold text-white/70">Tema Seçimi</span></div>
+                                            <div className="flex gap-2">{themeButtons}</div>
+                                        </div>
+
+                                        <div className="space-y-3 bg-black/20 p-4 rounded-xl border border-white/5">
+                                            <h3 className="text-sm font-bold text-white/90 mb-2">📹 Video Overlay</h3>
+                                            <div><label className="text-xs text-white/60 block mb-1">Follower Sayısı</label><input type="text" placeholder="örn: 342.234" value={config.followerCount} onChange={(e) => setConfig(prev => ({ ...prev, followerCount: e.target.value }))} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:border-white/50 focus:outline-none placeholder-white/30" /></div>
+                                            <div><label className="text-xs text-white/60 block mb-1">Gün Numarası</label><input type="text" placeholder="örn: 5" value={config.dayNumber} onChange={(e) => setConfig(prev => ({ ...prev, dayNumber: e.target.value }))} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:border-white/50 focus:outline-none placeholder-white/30" /></div>
+                                            <div className="pt-4 mt-2 border-t border-white/10">
+                                                <div className="flex items-center gap-2 mb-2"><Type size={16} className="text-white/70" /><span className="text-xs font-bold text-white/70">Ekran Yazıları (Çok Satırlı)</span></div>
+                                                <div className="grid gap-3">
+                                                    <div><label className="text-xs text-white/60 block mb-1">Yarışın En Tepesi (Top Text)</label><textarea placeholder="Üst Kısımda Görünecek Yazı" value={config.topText} onChange={(e) => setConfig(prev => ({ ...prev, topText: e.target.value }))} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white resize-y min-h-[60px] placeholder-white/30" rows={2} /></div>
+                                                    <div><label className="text-xs text-white/60 block mb-1">Yarışın En Altı (Bottom Text)</label><textarea placeholder="Alt Kısımda Görünecek Yazı" value={config.bottomText} onChange={(e) => setConfig(prev => ({ ...prev, bottomText: e.target.value }))} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white resize-y min-h-[60px] placeholder-white/30" rows={2} /></div>
+                                                </div>
+                                            </div>
+                                            <div className="mt-4 pt-4 border-t border-white/10">
+                                                <label className="text-xs text-white/60 block mb-2">Medya Dosyaları</label>
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="flex items-center gap-3"><button onClick={() => musicInputRef.current?.click()} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold transition flex items-center gap-2 border border-white/10 w-full justify-center text-white"><Music size={14} /> Müzik Seç (.mp3)</button><input ref={musicInputRef} type="file" accept="audio/*" className="hidden" onChange={handleMusicUpload} /></div>
+                                                    <div className="flex items-center gap-3"><button onClick={() => effectInputRef.current?.click()} className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg text-xs font-bold transition flex items-center gap-2 border border-purple-500/30 w-full justify-center text-purple-200"><Sparkles size={14} /> Efekt Seç (.webm/.mp4)</button><input ref={effectInputRef} type="file" accept="video/*" className="hidden" onChange={handleEffectUpload} /></div>
+                                                </div>
+                                                {(customMusicName || customEffectName) && (
+                                                    <div className="mt-2 space-y-1">
+                                                        {customMusicName && <div className="text-[10px] text-white/60 flex items-center gap-1"><Music size={10} /> {customMusicName}</div>}
+                                                        {customEffectName && <div className="text-[10px] text-purple-300 flex items-center gap-1"><Sparkles size={10} /> {customEffectName}</div>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${dragActive ? 'border-blue-500 bg-blue-500/10' : 'border-white/20 hover:border-white/40 bg-white/5'}`} onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }} onDragLeave={() => setDragActive(false)} onDragOver={(e) => { e.preventDefault(); setDragActive(true); }} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()}>
+                                            <input ref={fileInputRef} type="file" className="hidden" multiple accept="image/*,.html,.htm" {...{ webkitdirectory: "" }} onChange={handleChange} />
+                                            {importedUsers ? (<div className="space-y-2"><ImageIcon size={32} className="mx-auto text-green-500" /><p className="text-green-400 font-bold text-sm">{importedUsers.length} Yarışçı Hazır!</p><button onClick={(e) => { e.stopPropagation(); clearImportedUsers(); }} className="text-xs text-red-400 hover:underline flex items-center justify-center gap-1 mx-auto"><X size={12} /> Listeyi Temizle</button></div>) : (<div className="space-y-2"><FolderInput size={32} className="mx-auto text-white/40" /><p className="text-white/80 font-medium text-sm">Racers Klasörünü Sürükle</p><p className="text-white/40 text-xs">(Veya resim dosyalarını / HTML dosyasını)</p></div>)}
+                                        </div>
+                                        <div className={importedUsers ? 'opacity-50 pointer-events-none' : ''}><div className="flex justify-between mb-2"><label className="text-sm text-white/60 font-medium">Yarışçı Sayısı</label><span className={`font-bold bg-white/10 px-2 rounded text-white`}>{config.racerCount}</span></div><input type="range" min="50" max="500000" step="10" value={config.racerCount} onChange={(e) => setConfig(prev => ({ ...prev, racerCount: parseInt(e.target.value) }))} className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer accent-white" /></div>
+                                        <div><label className="text-sm text-white/60 font-medium mb-2 block">Pist</label><div className="grid gap-2">{trackButtons}</div></div>
+                                        <div><label className="text-sm text-white/60 font-medium mb-2 block">Tur Sayısı</label><div className="flex gap-2">{lapButtons}</div></div>
+                                        <button onClick={startSequence} className={`w-full py-4 ${currentTheme.accent} hover:brightness-110 text-white rounded-xl font-black text-lg shadow-lg transform transition active:scale-95 flex items-center justify-center gap-2`}><Play size={24} fill="currentColor" /> YARIŞI BAŞLAT</button>
+                                    </div>
+                                </div>
+                                <div className={`relative rounded-2xl overflow-hidden border border-white/20 mx-auto shadow-2xl`} style={{ width: '100%', maxWidth: '540px', aspectRatio: '9 / 16', backgroundColor: currentTheme.surface }}>
+                                    <canvas ref={canvasRef} width="1080" height="1920" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', backgroundColor: currentTheme.surface }} />
+                                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center"><div className="text-black/30 text-center"><Circle size={48} className="mx-auto mb-2 opacity-50" /><p className="text-sm font-bold">Ayarları yapın ve yarışı başlatın</p></div></div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="relative rounded-2xl overflow-hidden border border-white/20 mx-auto shadow-2xl" style={{ width: '100%', maxWidth: '540px', aspectRatio: '9 / 16', maxHeight: '90vh', backgroundColor: currentTheme.surface }}>
+                                <canvas ref={canvasRef} width="1080" height="1920" style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', backgroundColor: currentTheme.surface }} />
+                                {gameState === 'countdown' && (<div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"><div className="text-9xl font-black text-white animate-ping duration-700">{countdown}</div></div>)}
+                                {gameState === 'racing' && !showFinalModal && (
+                                    <>
+                                        <div className="absolute top-4 right-4 space-y-2 flex flex-col items-end">
+                                            <button onClick={() => setIsSpeakerMuted(!isSpeakerMuted)} className="p-2 rounded-full bg-white/90 border border-slate-200 hover:bg-white transition z-50 mb-2 shadow-sm text-black">{isSpeakerMuted ? <VolumeX size={20} className="text-red-500" /> : <Volume2 size={20} className="text-green-500" />}</button>
+                                            {isRecording && (<div className="px-4 py-2 bg-red-500/20 border border-red-500 text-red-500 rounded-lg text-xs font-bold flex items-center gap-2 animate-pulse mb-2 bg-black/50"><div className="w-3 h-3 bg-red-500 rounded-full"></div> REC</div>)}
+                                            <button onClick={() => setCameraMode(p => p === 'leader' ? 'wide' : 'leader')} className="w-full px-4 py-2 bg-white/90 hover:bg-white rounded-lg text-xs font-bold transition flex items-center gap-2 border border-slate-200 mb-2 shadow-sm text-slate-700"><Camera size={14} /> {cameraMode === 'leader' ? 'Lider' : 'Geniş'}</button>
+                                            <button onClick={handleExitRace} className="w-full px-4 py-2 bg-red-500/20 text-red-500 hover:bg-red-500/30 rounded-lg text-xs font-bold transition border border-red-500/30 bg-black/50">Bitir</button>
+                                        </div>
+                                    </>
+                                )}
+                                {showFinalModal && (
+                                    <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 animate-in fade-in duration-500">
+                                        <div className="text-center mb-6">
+                                            <Trophy size={60} className="text-yellow-500 mb-4 mx-auto animate-bounce" /><h2 className="text-3xl font-black text-white mb-4">{(recordedVideoUrl || videoUrlRef.current) ? 'Video Hazır!' : 'Video İşleniyor...'}</h2><p className="text-slate-400 mb-6">{(recordedVideoUrl || videoUrlRef.current) ? 'Yarışın kaydedildi ve indirmeye hazır' : 'Lütfen bekleyin, video hazırlanıyor...'}</p>
+                                            <div className="flex gap-4 justify-center">
+                                                <button onClick={downloadVideo} disabled={!recordedVideoUrl && !videoUrlRef.current} className={`px-6 py-3 ${(recordedVideoUrl || videoUrlRef.current) ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-wait'} text-white rounded-full font-bold transition flex items-center gap-2 shadow-lg`}><Download size={20} className={(!recordedVideoUrl && !videoUrlRef.current) ? 'animate-bounce' : ''} /> {(recordedVideoUrl || videoUrlRef.current) ? 'Videoyu İndir' : 'Hazırlanıyor...'}</button>
+                                                <button onClick={downloadJSON} disabled={!allRaceResults} className={`px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold transition flex items-center gap-2 shadow-lg ${!allRaceResults ? 'opacity-50 cursor-not-allowed' : ''}`}><FileJson size={20} /> Sonuçları İndir (.json)</button>
+                                                <button onClick={handleReturnToMenu} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-full font-bold hover:bg-slate-200 transition shadow-lg border border-slate-200">Menüye Dön</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<InstagramGrandPrix />);
+    </script>
+</body>
+</html>

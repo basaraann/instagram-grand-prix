@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Racer Sync Manager</title>
+    
+    <!-- Tailwind CSS (Tasarım için) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- JSZip (Zip oluşturma için) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- React ve ReactDOM -->
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18.2.0",
+          "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+          "lucide-react": "https://esm.sh/lucide-react@0.263.1"
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      /* Animasyonlar */
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in-up {
+        animation: fadeInUp 0.5s ease-out forwards;
+      }
+    </style>
+</head>
+<body class="bg-slate-900">
+    
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useRef, useEffect } from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { Upload, Folder, FileCode, CheckCircle, RefreshCw, Trash2, UserPlus, Download, Loader2 } from 'lucide-react';
+
+        function RacerCheckApp() {
+          const [folderFiles, setFolderFiles] = useState([]);
+          const [htmlProfiles, setHtmlProfiles] = useState([]);
+          
+          // Sonuçlar
+          const [missingProfiles, setMissingProfiles] = useState(null); // HTML'de var, Klasörde yok
+          const [extraFiles, setExtraFiles] = useState(null);       // Klasörde var, HTML'de yok
+
+          // Set yapıları
+          const [folderFileNamesSet, setFolderFileNamesSet] = useState(new Set());
+          const [htmlProfileNamesSet, setHtmlProfileNamesSet] = useState(new Set());
+
+          // ZIP İndirme Durumu
+          const [isZipping, setIsZipping] = useState(false);
+          // JSZip script tag ile yüklendiği için direkt kullanabiliriz, state'e gerek yok ama kontrol iyidir.
+          const [jszipLoaded, setJszipLoaded] = useState(false);
+
+          const folderInputRef = useRef(null);
+          const htmlInputRef = useRef(null);
+
+          useEffect(() => {
+            if (window.JSZip) {
+              setJszipLoaded(true);
+            }
+          }, []);
+
+          // --- Yardımcı Fonksiyonlar ---
+
+          const cleanFileName = (name) => {
+            return name.split('.').slice(0, -1).join('.').toLowerCase().trim();
+          };
+
+          const extractUsernameFromLink = (anchor) => {
+            let text = anchor.innerText ? anchor.innerText.trim() : "";
+            if (!text || text.length > 50) {
+              const href = anchor.getAttribute('href');
+              if (href) {
+                const parts = href.split('/').filter(p => p.length > 0);
+                text = parts[parts.length - 1];
+              }
+            }
+            return text ? text.toLowerCase() : null;
+          };
+
+          // --- Event Handlers ---
+
+          const handleFolderSelect = (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            // Dosyanın kendisini (originalFile) de saklıyoruz ki ZIP oluştururken kullanalım
+            const processedFiles = files.map(f => ({
+              originalFile: f,
+              name: f.name,
+              cleanName: cleanFileName(f.name)
+            }));
+
+            setFolderFiles(processedFiles);
+            
+            const nameSet = new Set(processedFiles.map(f => f.cleanName));
+            setFolderFileNamesSet(nameSet);
+            
+            if (htmlProfiles.length > 0) {
+              compareLists(processedFiles, htmlProfiles, nameSet, htmlProfileNamesSet);
+            }
+          };
+
+          const handleHtmlSelect = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const content = event.target.result;
+              parseHtmlContent(content);
+            };
+            reader.readAsText(file);
+          };
+
+          const parseHtmlContent = (htmlContent) => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            
+            const links = Array.from(doc.querySelectorAll('a'));
+            
+            const extractedProfiles = links
+              .map(link => ({
+                raw: link.outerHTML,
+                name: extractUsernameFromLink(link),
+                href: link.getAttribute('href')
+              }))
+              .filter(p => p.name && p.name.length > 1);
+
+            const uniqueProfiles = [];
+            const seen = new Set();
+            
+            extractedProfiles.forEach(p => {
+              if (!seen.has(p.name)) {
+                seen.add(p.name);
+                uniqueProfiles.push(p);
+              }
+            });
+
+            setHtmlProfiles(uniqueProfiles);
+            const htmlSet = new Set(uniqueProfiles.map(p => p.name));
+            setHtmlProfileNamesSet(htmlSet);
+
+            if (folderFiles.length > 0) {
+              compareLists(folderFiles, uniqueProfiles, folderFileNamesSet, htmlSet);
+            }
+          };
+
+          const compareLists = (currentFolderFiles, currentHtmlList, folderSet, htmlSet) => {
+            const missing = currentHtmlList.filter(profile => !folderSet.has(profile.name));
+            
+            const effectiveHtmlSet = htmlSet || new Set(currentHtmlList.map(p => p.name));
+            const extras = currentFolderFiles.filter(file => !effectiveHtmlSet.has(file.cleanName));
+
+            setMissingProfiles(missing);
+            setExtraFiles(extras);
+          };
+
+          // --- ZIP İNDİRME FONKSİYONU ---
+          const downloadCleanFolder = async () => {
+            if (!window.JSZip || !folderFiles || !extraFiles) return;
+
+            setIsZipping(true);
+            
+            try {
+              const zip = new window.JSZip();
+              const cleanFolder = zip.folder("racers_clean");
+
+              const extraFileNames = new Set(extraFiles.map(f => f.name));
+
+              let count = 0;
+              folderFiles.forEach(fileObj => {
+                if (!extraFileNames.has(fileObj.name)) {
+                  cleanFolder.file(fileObj.name, fileObj.originalFile);
+                  count++;
+                }
+              });
+
+              if (count === 0) {
+                alert("Klasöre eklenecek dosya bulunamadı!");
+                setIsZipping(false);
+                return;
+              }
+
+              const content = await zip.generateAsync({ type: "blob" });
+              
+              const url = window.URL.createObjectURL(content);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "racers_temizlenmis.zip";
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+
+            } catch (error) {
+              console.error("Zip oluşturma hatası:", error);
+              alert("Zip oluşturulurken bir hata oluştu.");
+            } finally {
+              setIsZipping(false);
+            }
+          };
+
+          const resetAll = () => {
+            setFolderFiles([]);
+            setHtmlProfiles([]);
+            setMissingProfiles(null);
+            setExtraFiles(null);
+            setFolderFileNamesSet(new Set());
+            setHtmlProfileNamesSet(new Set());
+            if (folderInputRef.current) folderInputRef.current.value = "";
+            if (htmlInputRef.current) htmlInputRef.current.value = "";
+          };
+
+          return (
+            <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-blue-500 selection:text-white p-6 flex flex-col items-center">
+              
+              <header className="mb-8 text-center space-y-2">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  Racer Sync Manager
+                </h1>
+                <p className="text-slate-400">
+                  Dosyalar ve Liste arasındaki farkları bul: Eksikleri tamamla, fazlalıkları temizle.
+                </p>
+              </header>
+
+              <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                
+                <div 
+                  onClick={() => folderInputRef.current.click()}
+                  className="group relative bg-slate-800/50 hover:bg-slate-800 border-2 border-dashed border-slate-600 hover:border-blue-500 transition-all rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer h-40"
+                >
+                  <input 
+                    type="file" 
+                    ref={folderInputRef}
+                    webkitdirectory="" 
+                    directory="" 
+                    multiple 
+                    className="hidden" 
+                    onChange={handleFolderSelect}
+                  />
+                  <Folder className="w-8 h-8 text-slate-400 group-hover:text-blue-500 mb-2 transition-colors" />
+                  <h3 className="font-semibold text-slate-200">1. Klasörü Seç</h3>
+                  <span className="text-xs text-slate-500">{folderFiles.length > 0 ? `${folderFiles.length} dosya yüklendi` : "Racers klasörü"}</span>
+                  {folderFiles.length > 0 && <CheckCircle className="absolute top-4 right-4 text-green-500 w-5 h-5" />}
+                </div>
+
+                <div 
+                  onClick={() => htmlInputRef.current.click()}
+                  className="group relative bg-slate-800/50 hover:bg-slate-800 border-2 border-dashed border-slate-600 hover:border-purple-500 transition-all rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer h-40"
+                >
+                  <input 
+                    type="file" 
+                    ref={htmlInputRef}
+                    accept=".html,.htm"
+                    className="hidden" 
+                    onChange={handleHtmlSelect}
+                  />
+                  <FileCode className="w-8 h-8 text-slate-400 group-hover:text-purple-500 mb-2 transition-colors" />
+                  <h3 className="font-semibold text-slate-200">2. HTML Dosyasını Seç</h3>
+                  <span className="text-xs text-slate-500">{htmlProfiles.length > 0 ? `${htmlProfiles.length} profil bulundu` : "Profile listesi"}</span>
+                  {htmlProfiles.length > 0 && <CheckCircle className="absolute top-4 right-4 text-green-500 w-5 h-5" />}
+                </div>
+              </div>
+
+              {(missingProfiles !== null || extraFiles !== null) && (
+                <div className="w-full max-w-7xl animate-fade-in-up space-y-6">
+                  
+                  <div className="flex flex-wrap items-center justify-between bg-slate-800 p-4 rounded-lg border border-slate-700 gap-4">
+                    <div className="flex gap-6">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                        <span className="text-slate-300">Eksik: <strong className="text-white">{missingProfiles?.length || 0}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span className="text-slate-300">Silinecek: <strong className="text-white">{extraFiles?.length || 0}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button onClick={resetAll} className="flex items-center gap-2 px-3 py-2 text-xs bg-slate-700 hover:bg-slate-600 rounded text-white transition-colors">
+                        <RefreshCw size={14} /> Analizi Temizle
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden flex flex-col h-[500px]">
+                      <div className="p-4 bg-slate-800 border-b border-slate-700 flex items-center justify-between sticky top-0 z-10">
+                        <h3 className="font-bold text-orange-400 flex items-center gap-2">
+                          <UserPlus size={18} /> Eksik Fotoğraflar
+                        </h3>
+                        <span className="text-xs bg-slate-900 text-slate-400 px-2 py-1 rounded">Yüklemen Gerekenler</span>
+                      </div>
+                      <div className="overflow-y-auto flex-1 p-2">
+                        {missingProfiles && missingProfiles.length > 0 ? (
+                          <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-900/50 text-slate-500 sticky top-0">
+                              <tr>
+                                <th className="p-2">Kullanıcı Adı</th>
+                                <th className="p-2 text-right">Durum</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700/50">
+                              {missingProfiles.map((p, i) => (
+                                <tr key={i} className="hover:bg-slate-700/20">
+                                  <td className="p-2 font-medium text-slate-200">{p.name}</td>
+                                  <td className="p-2 text-right">
+                                     <span className="text-xs text-orange-300 bg-orange-900/30 px-2 py-0.5 rounded">Fotoğraf Yok</span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                            <CheckCircle className="w-10 h-10 mb-2 text-green-500/50" />
+                            <p>Tüm takipçilerin fotoğrafı var.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden flex flex-col h-[500px]">
+                      <div className="p-4 bg-slate-800 border-b border-slate-700 flex flex-col gap-3 sticky top-0 z-10">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-bold text-red-400 flex items-center gap-2">
+                            <Trash2 size={18} /> Fazlalık Dosyalar
+                          </h3>
+                          <span className="text-xs bg-slate-900 text-slate-400 px-2 py-1 rounded">Silinmesi Gerekenler</span>
+                        </div>
+                        
+                        {extraFiles && extraFiles.length > 0 && (
+                          <button 
+                            onClick={downloadCleanFolder}
+                            disabled={isZipping || !jszipLoaded}
+                            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isZipping ? (
+                              <>
+                                <Loader2 className="animate-spin" size={18} />
+                                Klasör Hazırlanıyor...
+                              </>
+                            ) : (
+                              <>
+                                <Download size={18} />
+                                Temizlenmiş "racers" Klasörünü İndir
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="overflow-y-auto flex-1 p-2">
+                        {extraFiles && extraFiles.length > 0 ? (
+                          <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-900/50 text-slate-500 sticky top-0">
+                              <tr>
+                                <th className="p-2">Dosya Adı</th>
+                                <th className="p-2 text-right">Durum</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700/50">
+                              {extraFiles.map((f, i) => (
+                                <tr key={i} className="hover:bg-slate-700/20 group">
+                                  <td className="p-2 font-mono text-slate-300">{f.name}</td>
+                                  <td className="p-2 text-right">
+                                     <span className="text-xs text-red-300 bg-red-900/30 px-2 py-0.5 rounded">Listede Yok</span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                            <CheckCircle className="w-10 h-10 mb-2 text-green-500/50" />
+                            <p>Gereksiz dosya bulunamadı.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                  
+                  <div className="text-center text-xs text-slate-500 pb-8">
+                    <p><strong>Bilgi:</strong> "Temizlenmiş Klasörü İndir" butonuna bastığında, listede kırmızı görünen (fazlalık) dosyalar hariç tutularak yeni bir ZIP dosyası oluşturulur.</p>
+                  </div>
+
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RacerCheckApp />);
+    </script>
+</body>
+</html>
