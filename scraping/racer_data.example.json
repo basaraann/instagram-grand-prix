@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "name": "ornek_kullanici_1",
+    "image": "/racers/ornek_kullanici_1.jpg"
+  },
+  {
+    "id": 2,
+    "name": "ornek_kullanici_2",
+    "image": "/racers/ornek_kullanici_2.jpg"
+  },
+  {
+    "id": 3,
+    "name": "ornek_kullanici_3",
+    "image": "/racers/ornek_kullanici_3.jpg"
+  }
+]
